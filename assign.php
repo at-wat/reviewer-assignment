@@ -61,7 +61,14 @@ class presentation
 		$this->number = intval($raw[0]);
 		$this->id = $raw[1];
 		$this->slot = preg_replace('/-.*$/', '', $this->id);
-		$this->title = $raw[8];
+		if($raw[8] !== '')
+		{
+			$this->title = $raw[8];
+		}
+		else
+		{
+			$this->title = $raw[10];
+		}
 
 		if($raw[17] !== '')
 		{
