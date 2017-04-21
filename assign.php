@@ -19,28 +19,42 @@ function rmpr($in)
 }
 
 $session_from_name = array();
-$session_from_name_en = array();
 $cat_from_name = array();
-$cat_from_name_en = array();
+$cat_from_id = array();
 
 class presentation
 {
 	public $name = '';
 	public $number = 0;
 	public $id = '';
+	public $slot = '';
 	public $os_cat = 0;
 	public $os_num = 0;
 	public $young_award = false;
 	public $general_award = false;
 	public $title = '';
 	public $authors = array();
+	public $reviewers = array();
 
 	public function __construct($raw)
 	{
 		$this->number = intval($raw[0]);
 		$this->id = $raw[1];
-		$this->name = rmws($raw[17] . $raw[19]);
+		$this->slot = preg_replace('/-.*$/', '', $this->id);
 		$this->title = $raw[8];
+
+		if($raw[17] !== '')
+		{
+			$this->name = rmws($raw[17] . $raw[19]);
+		}
+		else if($raw[21] !== '')
+		{
+			$this->name = $raw[22] . " " . $raw[21];
+		}
+		else
+		{
+			die('Empty name field. ' . $raw[0] . "\n");
+		}
 
 		$os_id = explode('_', $raw[2]);
 		if(count($os_id) != 2) die("Invalid os_id. " . $raw[2] . "\n");
@@ -57,9 +71,9 @@ class presentation
 
 		for($i = 0; $i < 15; $i ++)
 		{
-			if($raw[28 + 11 * $i] != '')
+			if($raw[28 + 11 * $i] !== '')
 			{
-				$this->authors[] = rmws($raw[28 + 11 * $i] . $raw[30 + 11 * $i]);
+				$this->authors[rmws($raw[28 + 11 * $i] . $raw[30 + 11 * $i])] = true;
 			}
 		}
 	}
@@ -74,13 +88,19 @@ class reviewer
 	public $addr = '';
 	public $os_cats = array();
 	public $unavailable = array();
+	public $valid = false;
 
 	public function __construct($raw)
 	{
-		global $session_from_name, $session_from_name_en, $cat_from_name, $cat_from_name_en;
+		global $session_from_name, $cat_from_name;
 
-		if($raw[3] == '否') return null;
+		if($raw[3] == '否')
+		{
+			$this->valid = false;
+			return false;
+		}
 		else if($raw[3] !== '諾') die('Invalid answer. ' . $raw[3] . "\n");
+		$this->valid = true;
 
 		$this->name = rmws($raw[1]);
 		$this->affiliation = $raw[2];
@@ -94,11 +114,7 @@ class reviewer
 			if($cat === '') continue;
 			if(isset($cat_from_name[$cat]))
 			{
-				$this->os_cats[] = $cat_from_name[$cat];
-			}
-			else if(isset($cat_from_name_en[$cat]))
-			{
-				$this->os_cats[] = $cat_from_name_en[$cat];
+				$this->os_cats[$cat_from_name[$cat]->os_cat] = true;
 			}
 			else
 			{
@@ -110,7 +126,7 @@ class reviewer
 		foreach($unavailable_raw as $unavail)
 		{
 			if($unavail === '') continue;
-			$this->unavailable[] = preg_replace('/（[^,]*）/', '', $unavail);
+			$this->unavailable[preg_replace('/（[^,]*）/', '', $unavail)] = true;
 		}
 	}
 };
@@ -162,16 +178,19 @@ foreach($sessions_csv as $line)
 		if($session->os_num === 0)
 		{
 			$cat_from_name[$session->session_name] = $session;
+			$cat_from_name[$session->session_name_en] = $session;
+			$cat_from_id[$session->os_cat] = $session;
 		}
 		else
 		{
-			$cat_from_name_en[$session->session_name_en] = $session;
+			$session_from_name[$session->session_name] = $session;
+			$session_from_name[$session->session_name_en] = $session;
 		}
 	}
 }
 //var_dump($sessions);
 //var_dump($cat_from_name);
-//var_dump($cat_from_name_en);
+//var_dump($session_from_name);
 
 $header = true;
 foreach($reviewers_csv as $line)
@@ -184,11 +203,48 @@ foreach($reviewers_csv as $line)
 	if(!is_null($line[0]))
 	{
 		$ret = new reviewer($line);
-		if(!is_null($ret)) $reviewers[] = $ret;
+		if($ret->valid === true) $reviewers[] = $ret;
 	}
 }
 //var_dump($reviewers);
 
-echo "All data loaded.\n"
+echo "All data loaded.\n";
+
+
+foreach($reviewers as $key => $reviewer)
+{
+	foreach($presentations as $presentation)
+	{
+		if(isset($reviewer->unavailable[$presentation->slot]))
+		{
+			// unavailable
+			continue;
+		}
+		if(isset($presentation->authors[$reviewer->name]))
+		{
+			// author == reviewer
+			continue;
+		}
+		if(count($reviewer->os_cats) == 0 ||
+			isset($reviewer->os_cats[$presentation->os_cat]))
+		{
+			// preffered
+			$presentation->reviewers[] = $key;
+		}
+	}
+}
+
+usort($presentations, function($a, $b) {
+	return count($a->reviewers) - count($b->reviewers);
+});
+
+foreach($presentations as $presentation)
+{
+	echo $presentation->name . ' ' . count($presentation->reviewers) . "\n";
+}
+
+
+
+
 
 ?>
