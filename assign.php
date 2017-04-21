@@ -49,7 +49,9 @@ class presentation
 
 		foreach($this->reviewers_assigned as $reviewer_id => $status)
 		{
-			$ret .= $reviewers[$reviewer_id]->name . ',' . $reviewers[$reviewer_id]->addr . ',' . $reviewer_id . ',';
+			$ret .= $reviewers[$reviewer_id]->name . ',' . $reviewers[$reviewer_id]->affiliation . ',';
+			$ret .= $reviewers[$reviewer_id]->addr . ',';
+			//$ret .= $reviewer_id . ',';
 		}
 		return $ret;
 	}
@@ -116,6 +118,7 @@ class reviewer
 	{
 		$ret = '';
 		$ret .= $this->name . ',' . $this->affiliation . ',';
+		$ret .= $this->addr . ',';
 		$num_assign = 0;
 
 		foreach($presentations as $presentation)
