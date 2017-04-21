@@ -269,6 +269,7 @@ foreach($sessions_csv as $line)
 		}
 	}
 }
+$sessions_bak = $sessions;
 //var_dump($sessions);
 //var_dump($cat_from_name);
 //var_dump($session_from_name);
@@ -344,15 +345,21 @@ foreach($reviewers as $key => &$reviewer)
 unset($reviewer);
 
 $debug = false;
-
+/*
 $rev_per_presen = 2;
 $presen_per_rev = 5;
-
+$max_slots = 3;
+$rev_per_slot = 4;
+ */
+$rev_per_presen = 2;
+$presen_per_rev = 5;
+$max_slots = 3;
+$rev_per_slot = 10;
 
 $cnt = 0;
 $not_desired = false;
 
-for($presen_per_rev_now = 4; $presen_per_rev_now <= $presen_per_rev; $presen_per_rev_now ++)
+for($presen_per_rev_now = $presen_per_rev - 1; $presen_per_rev_now <= $presen_per_rev; $presen_per_rev_now ++)
 {
 	$resort = true;
 	while($resort)
@@ -392,10 +399,10 @@ for($presen_per_rev_now = 4; $presen_per_rev_now <= $presen_per_rev; $presen_per
 				if(count($presentation->reviewers_assigned) < $rev_per_presen)
 				{
 					// avoid more than 3 slots
-					if(count($reviewers[$reviewer_id]->slots) >= 3) continue;
+					if(count($reviewers[$reviewer_id]->slots) >= $max_slots) continue;
 					// avoid more than 3 presentations in one slot
 					if(isset($reviewers[$reviewer_id]->slots[$presentation->slot]))
-						if($reviewers[$reviewer_id]->slots[$presentation->slot] >= 4) continue;
+						if($reviewers[$reviewer_id]->slots[$presentation->slot] >= $rev_per_slot) continue;
 
 					$presentation->reviewers_assigned[$reviewer_id] = true;
 					$reviewers[$reviewer_id]->cnt_assigned ++;
@@ -539,6 +546,8 @@ usort($presentations, function($a, $b) {
 	//return $a_poss - $b_poss;
 	return $a->id > $b->id;
 });
+
+$sessions = $sessions_bak;
 
 $csv = '';
 foreach($presentations as $presentation)
