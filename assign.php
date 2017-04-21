@@ -42,7 +42,7 @@ class presentation
 		$ret = '';
 		$ret .= $this->number . ',';
 		$ret .= $this->id . ',';
-		$ret .= '"' . $this->os_cat . '-' . $this->os_num . '",';
+		$ret .= $this->os_cat . '_' . $this->os_num . ',';
 		$ret .= $this->name . ',';
 		$ret .= $this->young_award . ',' . $this->general_award . ',';
 		$ret .= $this->title . ',';
