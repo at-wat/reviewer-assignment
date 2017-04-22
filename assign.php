@@ -295,6 +295,7 @@ $sessions_bak = $sessions;
 //var_dump($cat_from_name);
 //var_dump($session_from_name);
 
+
 $reviewers = array();
 $header = true;
 foreach($reviewers_csv as $line)
@@ -339,8 +340,29 @@ echo ' ' . count($reviewers) . " reviewers\n";
 echo ' ' . count($presentations) . " presentations\n";
 echo "\n";
 
+echo 'Categories: ' . count($cat_from_id) . "\n";
+$pinch_hitter_cat_req = count($cat_from_id) - 9;
+
+$unavailable_slots = array();
+$cat_request = array();
+$pinch_hitters = array();
 foreach($reviewers as $key => &$reviewer)
 {
+	$unavailable_cnt = count($reviewer->unavailable);
+	$cat_cnt = count($reviewer->os_cats);
+	if($unavailable_cnt == 0 &&
+		($cat_cnt == 0 || $cat_cnt >= $pinch_hitter_cat_req))
+	{
+		$pinch_hitters[$key] = true;
+	}
+
+	if(!isset($unavailable_slots[$unavailable_cnt]))
+		$unavailable_slots[$unavailable_cnt] = 0;
+	if(!isset($cat_request[$cat_cnt]))
+		$cat_request[$cat_cnt] = 0;
+	$unavailable_slots[$unavailable_cnt] ++;
+	$cat_request[$cat_cnt] ++;
+
 	foreach($presentations as &$presentation)
 	{
 		if(isset($reviewer->unavailable[$presentation->slot]))
@@ -364,6 +386,40 @@ foreach($reviewers as $key => &$reviewer)
 	unset($presentation);
 }
 unset($reviewer);
+ksort($cat_request);
+ksort($unavailable_slots);
+
+echo "\n";
+echo "Number of unavailable slot histogram.\n";
+foreach($unavailable_slots as $key => $number)
+{
+	echo $key . ': ' . $number . "\n";
+}
+echo "\n";
+echo "Number of requested categoris histogram.\n";
+foreach($cat_request as $key => $number)
+{
+	echo $key . ': ' . $number . "\n";
+}
+echo "\n";
+echo "Pinch hitters.\n";
+foreach($pinch_hitters as $key => $status)
+{
+	echo ' [' . $key . '] ' . $reviewers[$key]->name . ' ' . $reviewers[$key]->affiliation;
+	$num_req = count($reviewers[$key]->os_cats);
+	echo ' (' . $num_req . " categories)\n";
+
+	$reviewers[$key]->unavailable = $slot_list;
+
+	foreach($presentations as &$presentation)
+	{
+		if(isset($presentation->reviewers[$key]))
+			unset($presentation->reviewers[$key]);
+	}
+	unset($presentation);
+	$reviewers[$key]->cnt_assignable = 0;
+}
+echo "\n";
 
 $debug = false;
 /*
@@ -372,10 +428,18 @@ $presen_per_rev = 5;
 $max_slots = 3;
 $rev_per_slot = 4;
  */
+/*
 $rev_per_presen = 2;
 $presen_per_rev = 5;
 $max_slots = 3;
 $rev_per_slot = 10;
+ */
+
+$rev_per_presen = 2;
+$presen_per_rev = 6;
+$max_slots = 2;
+$rev_per_slot = 10;
+
 
 $cnt = 0;
 $not_desired = false;
