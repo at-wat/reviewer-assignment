@@ -21,6 +21,7 @@ function rmpr($in)
 $session_from_name = array();
 $cat_from_name = array();
 $cat_from_id = array();
+$slot_list = array();
 
 class presentation
 {
@@ -123,22 +124,39 @@ class reviewer
 
 	public function csv($presentations, $num, $max_assign)
 	{
+		global $slot_list;
+
 		$ret = '';
 		$ret .= $this->name . ',' . $this->affiliation . ',';
 		$ret .= $this->addr . ',';
 		$num_assign = 0;
 
+		$slots = array();
+		foreach($slot_list as $id => $status)
+		{
+			$slots[$id] = '';
+		}
 		foreach($presentations as $presentation)
 		{
 			if(isset($presentation->reviewers_assigned[$num]))
 			{
-				$ret .= $presentation->id . ',';
+				if($slots[$presentation->slot] !== '') 
+					$slots[$presentation->slot] .= ',';
+				$slots[$presentation->slot] .= $presentation->id;
+				//$ret .= $presentation->id . ',';
 				if(isset($this->unavailable[$presentation->slot]))
 				{
-					echo 'Error: ' . $this->name . "\t" . ' is assigned to anavailable slot ' . $presentation->slot . ".\n";
+					echo 'Error: ' . $this->name . "\t" . ' is assigned to unavailable slot ' . $presentation->slot . ".\n";
 				}
 				$num_assign ++;
 			}
+		}
+		foreach($slots as $id => $presen)
+		{
+			$state = '';
+			if(isset($this->unavailable[$id]))
+				$state = 'X';
+			$ret .= $state . ',"' . $slots[$id] . '",';
 		}
 		if(count($this->slots) > 2)
 		{
@@ -238,10 +256,13 @@ foreach($presentations_csv as $line)
 	}
 	if(!is_null($line[0]))
 	{
-		$presentations[] = new presentation($line);
+		$presen = new presentation($line);
+		$presentations[] = $presen;
+		$slot_list[$presen->slot] = true;
 	}
 }
 //var_dump($presentations);
+ksort($slot_list);
 
 $sessions = array();
 $header = true;
