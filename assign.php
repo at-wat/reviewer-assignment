@@ -396,7 +396,7 @@ foreach($unavailable_slots as $key => $number)
 	echo $key . ': ' . $number . "\n";
 }
 echo "\n";
-echo "Number of requested categoris histogram.\n";
+echo "Number of preferred categoris histogram.\n";
 foreach($cat_request as $key => $number)
 {
 	echo $key . ': ' . $number . "\n";
@@ -543,8 +543,8 @@ for($presen_per_rev_now = $presen_per_rev - 1; $presen_per_rev_now <= $presen_pe
 		if($cnt_not_assigned_presentation == 0) break;
 		
 		echo $cnt_not_assigned_presentation . " presentations don't have enough reviewers.\n";
-		echo "Relax category request.\n\n";
-		echo "Following assignments ignore requested category:\n";
+		echo "Relax category preference.\n\n";
+		echo "Following assignments ignore preferred category:\n";
 
 		foreach($reviewers as $key => &$reviewer)
 		{
