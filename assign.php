@@ -1,13 +1,27 @@
 <?php
 
-$presentations_csv = new SplFileObject("presentations.csv"); 
+function mb_SplFileObject($filename)
+{
+	$data = file_get_contents($filename);
+	$enc = mb_detect_encoding($data);
+	$data_utf8 = mb_convert_encoding($data, 'UTF-8', $enc);
+	$filename2 = dirname($filename) . basename($filename, '.csv') . 'utf8.csv';
+	file_put_contents($filename2, $data_utf8);
+	echo 'Opening ' . $filename . "\n";
+	echo ' encoding: ' . $enc . "\n";
+	return new SplFileObject($filename2);
+}
+
+$presentations_csv = mb_SplFileObject("presentations.csv"); 
 $presentations_csv->setFlags(SplFileObject::READ_CSV); 
 
-$reviewers_csv = new SplFileObject("reviewers.csv"); 
+$reviewers_csv = mb_SplFileObject("reviewers.csv"); 
 $reviewers_csv->setFlags(SplFileObject::READ_CSV); 
 
-$sessions_csv = new SplFileObject("sessions.csv"); 
+$sessions_csv = mb_SplFileObject("sessions.csv"); 
 $sessions_csv->setFlags(SplFileObject::READ_CSV); 
+
+echo "\n";
 
 function rmws($in)
 {
@@ -634,19 +648,29 @@ usort($presentations, function($a, $b) {
 
 $sessions = $sessions_bak;
 
+function convert_csv($filename, $filename2)
+{
+	$data = file_get_contents($filename);
+	$enc = mb_detect_encoding($data);
+	$data_utf8 = mb_convert_encoding($data, 'SJIS', $enc);
+	file_put_contents($filename2, $data_utf8);
+}
+
 $csv = '';
 foreach($presentations as $presentation)
 {
 	$csv .= $presentation->csv($reviewers) . "\n";
 }
-file_put_contents('assignments.csv', $csv);
+file_put_contents('assignments.utf8.csv', $csv);
+convert_csv('assignments.utf8.csv', 'assignments.csv');
 
 $csv = '';
 foreach($reviewers as $key => $reviewer)
 {
 	$csv .= $reviewer->csv($presentations, $key, $presen_per_rev) . "\n";
 }
-file_put_contents('reviewer_status.csv', $csv);
+file_put_contents('reviewer_status.utf8.csv', $csv);
+convert_csv('reviewer_status.utf8.csv', 'reviewer_status.csv');
 
 
 ?>
