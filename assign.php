@@ -5,7 +5,7 @@ function mb_SplFileObject($filename)
 	$data = file_get_contents($filename);
 	$enc = mb_detect_encoding($data);
 	$data_utf8 = mb_convert_encoding($data, 'UTF-8', $enc);
-	$filename2 = dirname($filename) . basename($filename, '.csv') . 'utf8.csv';
+	$filename2 = dirname($filename) . '/' . basename($filename, '.csv') . '.utf8.csv';
 	file_put_contents($filename2, $data_utf8);
 	echo 'Opening ' . $filename . "\n";
 	echo ' encoding: ' . $enc . "\n";
@@ -321,6 +321,7 @@ foreach($reviewers_csv as $line)
 	}
 	if(!is_null($line[0]))
 	{
+		if($line[0][0] == '#') continue;
 		$ret = new reviewer($line);
 		$registered = false;
 		foreach($reviewers as $key => $reviewer)
@@ -365,7 +366,7 @@ foreach($reviewers as $key => &$reviewer)
 	$unavailable_cnt = count($reviewer->unavailable);
 	$cat_cnt = count($reviewer->os_cats);
 	if($unavailable_cnt == 0 &&
-		($cat_cnt == 0 || $cat_cnt >= $pinch_hitter_cat_req))
+		(/*$cat_cnt == 0 || */$cat_cnt >= $pinch_hitter_cat_req))
 	{
 		$pinch_hitters[$key] = true;
 	}
@@ -404,13 +405,13 @@ ksort($cat_request);
 ksort($unavailable_slots);
 
 echo "\n";
-echo "Number of unavailable slot histogram.\n";
+echo "Number of unavailable slot histogram:\n";
 foreach($unavailable_slots as $key => $number)
 {
 	echo $key . ': ' . $number . "\n";
 }
 echo "\n";
-echo "Number of preferred categoris histogram.\n";
+echo "Number of preferred categoris histogram:\n";
 foreach($cat_request as $key => $number)
 {
 	echo $key . ': ' . $number . "\n";
@@ -458,7 +459,8 @@ $rev_per_slot = 10;
 $cnt = 0;
 $not_desired = false;
 
-for($presen_per_rev_now = $presen_per_rev - 1; $presen_per_rev_now <= $presen_per_rev; $presen_per_rev_now ++)
+$presen_per_rev_now = $presen_per_rev - 1;
+while(true)
 {
 	$resort = true;
 	while($resort)
@@ -484,10 +486,14 @@ for($presen_per_rev_now = $presen_per_rev - 1; $presen_per_rev_now <= $presen_pe
 				if(!$status) die("Invalid reviewer status.\n");
 				if($reviewers[$reviewer_id]->cnt_assigned > $presen_per_rev)
 				{
-					die('[' . $reviewer_id . " assigned too much.\n");
+					die('[' . $reviewer_id . "] assigned too much.\n");
 				}
 				if($reviewers[$reviewer_id]->cnt_assigned >= $presen_per_rev_now) continue;
-				$assignable[$reviewer_id] = $reviewers[$reviewer_id]->cnt_assignable;
+				$slot_already_assigned = 0;
+				if(isset($reviewers[$reviewer_id]->slots[$presentation->slot]))
+					$slot_already_assigned = 4;//$reviewers[$reviewer_id]->slots[$presentation->slot];
+				$assignable[$reviewer_id] = $reviewers[$reviewer_id]->cnt_assignable
+					- $slot_already_assigned;
 			}
 			if(count($assignable) == 0) continue;
 			asort($assignable);
@@ -498,7 +504,8 @@ for($presen_per_rev_now = $presen_per_rev - 1; $presen_per_rev_now <= $presen_pe
 				if(count($presentation->reviewers_assigned) < $rev_per_presen)
 				{
 					// avoid more than 3 slots
-					if(count($reviewers[$reviewer_id]->slots) >= $max_slots) continue;
+					if(count($reviewers[$reviewer_id]->slots) >= $max_slots &&
+						!isset($reviewers[$reviewer_id]->slots[$presentation->slot])) continue;
 					// avoid more than 3 presentations in one slot
 					if(isset($reviewers[$reviewer_id]->slots[$presentation->slot]))
 						if($reviewers[$reviewer_id]->slots[$presentation->slot] >= $rev_per_slot) continue;
@@ -586,10 +593,9 @@ for($presen_per_rev_now = $presen_per_rev - 1; $presen_per_rev_now <= $presen_pe
 		}
 		unset($reviewer);
 		$not_desired = true;
-
-		// try again
-		$presen_per_rev_now --;
 	}
+	// try again
+	$presen_per_rev_now = $presen_per_rev;
 }
 $cnt_not_assigned_presentation = 0;
 foreach($presentations as $presentation)
@@ -602,7 +608,9 @@ foreach($presentations as $presentation)
 }
 $cnt_not_assigned_reviewer = 0;
 $assign_num = array();
+$assign_slots = array();
 for($i = 0; $i < $presen_per_rev + 1; $i ++) $assign_num[$i] = 0;
+for($i = 0; $i < $max_slots + 1; $i ++) $assign_slots[$i] = 0;
 foreach($reviewers as $reviewer)
 {
 	$cnt = $reviewer->cnt_assigned;
@@ -611,16 +619,23 @@ foreach($reviewers as $reviewer)
 		$cnt_not_assigned_reviewer ++;
 	}
 	$assign_num[$cnt] ++;
+	$assign_slots[count($reviewer->slots)] ++;
 }
 echo "\n";
 echo $cnt_not_assigned_presentation . " presentations don't have enough reviewers.\n";
 echo $cnt_not_assigned_reviewer . " reviewers don't have full assignments.\n";
 
 echo "\n";
-
+echo "Number of assigned reviews histogram:\n";
 for($i = 0; $i < $presen_per_rev + 1; $i ++)
 {
 	echo $i . ' presentations: ' . $assign_num[$i] . "\n";
+}
+echo "\n";
+echo "Number of assigned slots histogram:\n";
+for($i = 0; $i < $max_slots + 1; $i ++)
+{
+	echo $i . ' slots: ' . $assign_slots[$i] . "\n";
 }
 
 echo "\n";
@@ -636,6 +651,11 @@ foreach($reviewers as $reviewer)
 echo "\n";
 echo "Generating assignments.csv and reviewer_status.csv.\n";
 echo "\n";
+
+foreach($pinch_hitters as $key => $status)
+{
+	$reviewers[$key]->unavailable = array();
+}
 
 usort($presentations, function($a, $b) {
 	//global $reviewers;
