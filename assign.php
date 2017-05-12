@@ -1,5 +1,11 @@
 <?php
 
+$rev_per_presen = 2; // 一発表あたりの審査員数
+$presen_per_rev = 6; // 審査員あたりの最大割当数
+$max_slots = 2; // 審査員あたりの担当スロット数
+$rev_per_slot = 10; // 一審査員、一スロットあたりの最大審査数
+
+
 function mb_SplFileObject($filename)
 {
 	$data = file_get_contents($filename);
@@ -437,23 +443,6 @@ foreach($pinch_hitters as $key => $status)
 echo "\n";
 
 $debug = false;
-/*
-$rev_per_presen = 2;
-$presen_per_rev = 5;
-$max_slots = 3;
-$rev_per_slot = 4;
- */
-/*
-$rev_per_presen = 2;
-$presen_per_rev = 5;
-$max_slots = 3;
-$rev_per_slot = 10;
- */
-
-$rev_per_presen = 2;
-$presen_per_rev = 6;
-$max_slots = 2;
-$rev_per_slot = 10;
 
 
 $cnt = 0;
